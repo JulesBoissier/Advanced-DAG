@@ -109,8 +109,8 @@ app.layout = ddk.App(
 
 @callback(
     Output("scatter-plot", "figure"),
-    # Output("related-ag-grid", "virtualRowData"),
-    # Output("non-related-ag-grid", "virtualRowData"),
+    Output("related-ag-grid", "rowData"),
+    Output("non-related-ag-grid", "rowData"),
     Input("tails-ag-grid", "cellDoubleClicked"),
     prevent_initial_call=True,
 )
@@ -128,7 +128,31 @@ def update_right_hand_side_dashboard(tail_name: str):
         title=f"Full Flight Data for component on {tail_name['value']}",
     )
 
-    return fig
+    related_events_data = [
+        {
+            "Date": event.strftime("%Y-%m-%d"),
+            "PN": tail_name["value"],
+            "SN": "-",
+            "Description": "-",
+            "Notes": "-",
+            "": "-",
+        }
+        for event in relevant_events
+    ]
+
+    non_related_events_data = [
+        {
+            "Date": event.strftime("%Y-%m-%d"),
+            "PN": tail_name["value"],
+            "SN": "-",
+            "Description": "-",
+            "Notes": "-",
+            "": "-",
+        }
+        for event in non_relevant_events
+    ]
+
+    return fig, related_events_data, non_related_events_data
 
 
 if __name__ == "__main__":
