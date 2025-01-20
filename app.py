@@ -4,7 +4,18 @@ import dash_ag_grid as dag
 import dash_design_kit as ddk
 import plotly.express as px
 import plotly.graph_objects as go
-from dash import Dash, Input, Output, State, callback, dcc, html, set_props
+from dash import (
+    ClientsideFunction,
+    Dash,
+    Input,
+    Output,
+    State,
+    callback,
+    clientside_callback,
+    dcc,
+    html,
+    set_props,
+)
 
 from data_jobs.mock_databricks import MockDatabricksJobs
 
@@ -79,11 +90,17 @@ app.layout = ddk.App(
                                 columnSize="sizeToFit",
                                 dashGridOptions={
                                     "rowSelection": "multiple",
+                                    "suppressRowClickSelection": True,
                                     "animateRows": False,
+                                    "rowDragManaged": True,
+                                    "rowDragEntireRow": True,
+                                    "rowDragMultiRow": True,
+                                    "rowSelection": "multiple",
+                                    "suppressMoveWhenRowDragging": True,
                                 },
                                 defaultColDef={
                                     "filter": True,
-                                    "editable": True,
+                                    "editable": False,
                                     "cellDataType": False,
                                 },
                             ),
@@ -101,10 +118,17 @@ app.layout = ddk.App(
                                     {"field": "", "sortable": False},
                                 ],
                                 columnSize="sizeToFit",
-                                dashGridOptions={"animateRows": False},
+                                dashGridOptions={
+                                    "animateRows": False,
+                                    "rowDragManaged": True,
+                                    "rowDragEntireRow": True,
+                                    "rowDragMultiRow": True,
+                                    "rowSelection": "multiple",
+                                    "suppressMoveWhenRowDragging": True,
+                                },
                                 defaultColDef={
                                     "filter": True,
-                                    "editable": True,
+                                    "editable": False,
                                     "cellDataType": False,
                                 },
                             ),
@@ -114,6 +138,13 @@ app.layout = ddk.App(
             ]
         ),
     ]
+)
+
+clientside_callback(
+    ClientsideFunction("addDropZone", "dropZoneGrid2GridSimple"),
+    Output("non-related-ag-grid", "id"),
+    Input("non-related-ag-grid", "id"),
+    State("related-ag-grid", "id"),
 )
 
 
