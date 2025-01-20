@@ -6,9 +6,10 @@ import numpy as np
 
 class MockDatabricksJobs:
     @staticmethod
-    def fetch_plane_events(
-        years=5, points_per_year=4000, amplitude=1, frequency=1, noise_level=0.1
-    ):
+    def fetch_plane_events(years=5, points_per_year=4000, noise_level=1):
+        amplitude = random.randint(1, 10)
+        frequency = random.randint(1, 5)
+
         total_points = years * points_per_year
         start_date = datetime.today()
         time_intervals = [
