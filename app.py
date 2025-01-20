@@ -68,6 +68,7 @@ app.layout = ddk.App(
                                 id="related-ag-grid",
                                 rowData=[],
                                 columnDefs=[
+                                    {"field": "", "checkboxSelection": True},
                                     {"field": "Date"},
                                     {"field": "PN"},
                                     {"field": "SN"},
@@ -76,7 +77,10 @@ app.layout = ddk.App(
                                     {"field": "", "sortable": False},
                                 ],
                                 columnSize="sizeToFit",
-                                dashGridOptions={"animateRows": False},
+                                dashGridOptions={
+                                    "rowSelection": "multiple",
+                                    "animateRows": False,
+                                },
                                 defaultColDef={
                                     "filter": True,
                                     "editable": True,
@@ -116,6 +120,7 @@ app.layout = ddk.App(
 @callback(
     Output("scatter-plot", "figure"),
     Output("related-ag-grid", "rowData"),
+    Output("related-ag-grid", "selectedRows"),
     Output("non-related-ag-grid", "rowData"),
     Input("tails-ag-grid", "cellDoubleClicked"),
     allow_duplicate=True,
@@ -157,11 +162,11 @@ def update_scatter_plot(tail_name: str):
         for event in non_relevant_events
     ]
 
-    return fig, related_events_data, non_related_events_data
+    return fig, related_events_data, related_events_data, non_related_events_data
 
 
 @callback(
-    Input("related-ag-grid", "rowData"),
+    Input("related-ag-grid", "selectedRows"),
     State("scatter-plot", "figure"),
     prevent_initial_call=True,
 )
@@ -170,6 +175,9 @@ def add_event_vertical_lines(row_data, figure):
     max_date = datetime.strptime("1000-01-01", "%Y-%m-%d")
 
     figure = go.Figure(figure)
+
+    # Remove all existing vlines on every callback run
+    figure["layout"]["shapes"] = []
 
     for event in row_data:
         date_obj = datetime.strptime(event["Date"], "%Y-%m-%d")
