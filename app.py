@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import dash_ag_grid as dag
 import dash_design_kit as ddk
@@ -166,6 +166,9 @@ def update_scatter_plot(tail_name: str):
     prevent_initial_call=True,
 )
 def add_event_vertical_lines(row_data, figure):
+    min_date = datetime.strptime("2050-12-31", "%Y-%m-%d")
+    max_date = datetime.strptime("1000-01-01", "%Y-%m-%d")
+
     figure = go.Figure(figure)
 
     for event in row_data:
@@ -175,6 +178,14 @@ def add_event_vertical_lines(row_data, figure):
             x=date_obj,
             line=dict(dash="dash"),
         )
+
+        min_date = min(min_date, date_obj)
+        max_date = max(max_date, date_obj)
+
+    # Set the x-axis range
+    figure.update_layout(
+        xaxis=dict(range=[min_date - timedelta(weeks=4), max_date + timedelta(weeks=4)])
+    )
 
     # Set the figure prop of scatter plot
     set_props("scatter-plot", {"figure": figure})
