@@ -47,7 +47,7 @@ app.layout = ddk.App(
                         dashGridOptions={"animateRows": False},
                         defaultColDef={
                             "filter": True,
-                            "editable": True,
+                            "editable": False,
                             "cellDataType": False,
                         },
                     ),
@@ -105,6 +105,30 @@ app.layout = ddk.App(
         ),
     ]
 )
+
+
+@callback(
+    Output("scatter-plot", "figure"),
+    # Output("related-ag-grid", "virtualRowData"),
+    # Output("non-related-ag-grid", "virtualRowData"),
+    Input("tails-ag-grid", "cellDoubleClicked"),
+    prevent_initial_call=True,
+)
+def update_right_hand_side_dashboard(tail_name: str):
+    import plotly.express as px
+
+    from data_jobs.mock_databricks import MockDatabricksJobs
+
+    data, relevant_events, non_relevant_events = MockDatabricksJobs.fetch_plane_events()
+
+    fig = px.scatter(
+        x=data.keys(),
+        y=data.values(),
+        labels={"x": "Date", "y": "Metric"},
+        title=f"Full Flight Data for component on {tail_name['value']}",
+    )
+
+    return fig
 
 
 if __name__ == "__main__":
