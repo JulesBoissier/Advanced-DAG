@@ -1,7 +1,10 @@
+from datetime import datetime
+
 import dash_ag_grid as dag
 import dash_design_kit as ddk
 import plotly.express as px
-from dash import Dash, Input, Output, State, callback, dcc, html
+import plotly.graph_objects as go
+from dash import Dash, Input, Output, State, callback, dcc, html, set_props
 
 from data_jobs.mock_databricks import MockDatabricksJobs
 
@@ -115,6 +118,7 @@ app.layout = ddk.App(
     Output("related-ag-grid", "rowData"),
     Output("non-related-ag-grid", "rowData"),
     Input("tails-ag-grid", "cellDoubleClicked"),
+    allow_duplicate=True,
     prevent_initial_call=True,
 )
 def update_scatter_plot(tail_name: str):
@@ -127,13 +131,6 @@ def update_scatter_plot(tail_name: str):
         labels={"x": "Date", "y": "Metric"},
         title=f"Full Flight Data for component on {tail_name['value']}",
     )
-
-    # Add events as vertical lines
-    for event_date in relevant_events:
-        fig.add_vline(
-            x=event_date,
-            line=dict(dash="dash"),
-        )
 
     # Populate AG Grids
     related_events_data = [
@@ -163,18 +160,24 @@ def update_scatter_plot(tail_name: str):
     return fig, related_events_data, non_related_events_data
 
 
-# @callback(
-#     Output("scatter-plot", "figure"),
-#     Input("related-ag-grid", "rowData"),
-#     #State("scatter-plot", "figure"),
-#     allow_duplicate=True
-# )
-# def add_event_vertical_lines(row_data, figure):
+@callback(
+    Input("related-ag-grid", "rowData"),
+    State("scatter-plot", "figure"),
+    prevent_initial_call=True,
+)
+def add_event_vertical_lines(row_data, figure):
+    figure = go.Figure(figure)
 
+    for event in row_data:
+        date_obj = datetime.strptime(event["Date"], "%Y-%m-%d")
 
-#     print("ROW DATA:")
-#     print(row_data)
-#     return figure
+        figure.add_vline(
+            x=date_obj,
+            line=dict(dash="dash"),
+        )
+
+    # Set the figure prop of scatter plot
+    set_props("scatter-plot", {"figure": figure})
 
 
 if __name__ == "__main__":
