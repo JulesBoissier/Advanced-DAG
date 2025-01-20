@@ -1,6 +1,9 @@
 import dash_ag_grid as dag
 import dash_design_kit as ddk
-from dash import Dash, Input, Output, callback, dcc, html
+import plotly.express as px
+from dash import Dash, Input, Output, State, callback, dcc, html
+
+from data_jobs.mock_databricks import MockDatabricksJobs
 
 app = Dash(__name__)
 server = app.server  # expose server variable for Procfile
@@ -114,13 +117,10 @@ app.layout = ddk.App(
     Input("tails-ag-grid", "cellDoubleClicked"),
     prevent_initial_call=True,
 )
-def update_right_hand_side_dashboard(tail_name: str):
-    import plotly.express as px
-
-    from data_jobs.mock_databricks import MockDatabricksJobs
-
+def update_scatter_plot(tail_name: str):
     data, relevant_events, non_relevant_events = MockDatabricksJobs.fetch_plane_events()
 
+    # Create figure based on query results
     fig = px.scatter(
         x=data.keys(),
         y=data.values(),
@@ -128,6 +128,14 @@ def update_right_hand_side_dashboard(tail_name: str):
         title=f"Full Flight Data for component on {tail_name['value']}",
     )
 
+    # Add events as vertical lines
+    for event_date in relevant_events:
+        fig.add_vline(
+            x=event_date,
+            line=dict(dash="dash"),
+        )
+
+    # Populate AG Grids
     related_events_data = [
         {
             "Date": event.strftime("%Y-%m-%d"),
@@ -153,6 +161,20 @@ def update_right_hand_side_dashboard(tail_name: str):
     ]
 
     return fig, related_events_data, non_related_events_data
+
+
+# @callback(
+#     Output("scatter-plot", "figure"),
+#     Input("related-ag-grid", "rowData"),
+#     #State("scatter-plot", "figure"),
+#     allow_duplicate=True
+# )
+# def add_event_vertical_lines(row_data, figure):
+
+
+#     print("ROW DATA:")
+#     print(row_data)
+#     return figure
 
 
 if __name__ == "__main__":
