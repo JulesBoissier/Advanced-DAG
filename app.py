@@ -172,7 +172,7 @@ app.layout = ddk.App(
 )
 
 
-
+#* Copied from https://dash.plotly.com/dash-ag-grid/row-dragging-external-dropzone
 clientside_callback(
     ClientsideFunction("addDropZone", "dropZoneGrid2GridComplex"),
     Output("non-related-ag-grid", "id"),
