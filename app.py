@@ -56,16 +56,36 @@ app.layout = ddk.App(
         ddk.Row(
             children=[
                 ddk.Card(
+                    #TODO: Nest events ag-grid with https://dash.plotly.com/dash-ag-grid/enterprise-master-detail
                     dag.AgGrid(
                         id="tails-ag-grid",
-                        rowData=[{"Tails": f"XX12{i}"} for i in range(25)],
-                        columnDefs=[{"field": "Tails", "sortable": True}],
+                        rowData=[{"Tails": f"XX12{i}", 
+                                "cities" : [
+                                    {"city": "Shanghai", "population_city": 24870895, "population_metro": "NA"},
+                                    {"city": "Beijing", "population_city": 21893095, "population_metro": "NA"}
+                                    ]
+                                } for i in range(25)],
+                        columnDefs=[{"field": "Tails", "sortable": True, "cellRenderer": "agGroupCellRenderer"}],
                         columnSize="sizeToFit",
-                        dashGridOptions={"animateRows": False},
+                        dashGridOptions={"animateRows": False, "detailRowAutoHeight": True},
                         defaultColDef={
                             "filter": True,
                             "editable": False,
                             "cellDataType": False,
+                        },
+                        enableEnterpriseModules=True,
+                        licenseKey=None, #os.environ["AGGRID_ENTERPRISE"],
+                        masterDetail=True,
+                        detailCellRendererParams={
+                            "detailGridOptions": {
+                                "columnDefs": [
+                                    {"headerName": "City", "field": "city"},
+                                    {"headerName": "Pop. (City proper)", "field": "population_city"},
+                                    {"headerName": "Pop. (Metro area)", "field": "population_metro"},
+                                ]
+                            },
+                            "detailColName": "cities",
+                            "suppressCallback": True,
                         },
                     ),
                 ),
