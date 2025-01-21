@@ -75,6 +75,17 @@ app.layout = ddk.App(
                             ddk.Graph(id="scatter-plot"),
                         ),
                         ddk.Row(
+                            dcc.RadioItems(
+                                id='test-button',
+                                options={
+                                    'move': 'Move',
+                                    'deselect': 'Copy and Deselect',
+                                    'none': 'Copy and Keep Selected'
+                                },
+                                value='move', inline=True, style={'margin': 10}
+                            ),
+                        ),
+                        ddk.Row(
                             dag.AgGrid(
                                 id="related-ag-grid",
                                 rowData=[],
@@ -140,11 +151,14 @@ app.layout = ddk.App(
     ]
 )
 
+
+
 clientside_callback(
-    ClientsideFunction("addDropZone", "dropZoneGrid2GridSimple"),
+    ClientsideFunction("addDropZone", "dropZoneGrid2GridComplex"),
     Output("non-related-ag-grid", "id"),
-    Input("non-related-ag-grid", "id"),
+    Input("test-button", "value"),
     State("related-ag-grid", "id"),
+    State("non-related-ag-grid", "id")
 )
 
 
