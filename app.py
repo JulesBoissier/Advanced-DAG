@@ -4,7 +4,18 @@ import dash_ag_grid as dag
 import dash_design_kit as ddk
 import plotly.express as px
 import plotly.graph_objects as go
-from dash import Dash, Input, Output, State, callback, dcc, html, set_props
+from dash import (
+    ClientsideFunction,
+    Dash,
+    Input,
+    Output,
+    State,
+    callback,
+    clientside_callback,
+    dcc,
+    html,
+    set_props,
+)
 
 from data_jobs.mock_databricks import MockDatabricksJobs
 
@@ -45,16 +56,36 @@ app.layout = ddk.App(
         ddk.Row(
             children=[
                 ddk.Card(
+                    #TODO: Nest events ag-grid with https://dash.plotly.com/dash-ag-grid/enterprise-master-detail
                     dag.AgGrid(
                         id="tails-ag-grid",
-                        rowData=[{"Tails": f"XX12{i}"} for i in range(25)],
-                        columnDefs=[{"field": "Tails", "sortable": True}],
+                        rowData=[{"Tails": f"XX12{i}", 
+                                "cities" : [
+                                    {"city": "Shanghai", "population_city": 24870895, "population_metro": "NA"},
+                                    {"city": "Beijing", "population_city": 21893095, "population_metro": "NA"}
+                                    ]
+                                } for i in range(25)],
+                        columnDefs=[{"field": "Tails", "sortable": True, "cellRenderer": "agGroupCellRenderer"}],
                         columnSize="sizeToFit",
-                        dashGridOptions={"animateRows": False},
+                        dashGridOptions={"animateRows": False, "detailRowAutoHeight": True},
                         defaultColDef={
                             "filter": True,
                             "editable": False,
                             "cellDataType": False,
+                        },
+                        enableEnterpriseModules=True,
+                        licenseKey=None, #os.environ["AGGRID_ENTERPRISE"],
+                        masterDetail=True,
+                        detailCellRendererParams={
+                            "detailGridOptions": {
+                                "columnDefs": [
+                                    {"headerName": "City", "field": "city"},
+                                    {"headerName": "Pop. (City proper)", "field": "population_city"},
+                                    {"headerName": "Pop. (Metro area)", "field": "population_metro"},
+                                ]
+                            },
+                            "detailColName": "cities",
+                            "suppressCallback": True,
                         },
                     ),
                 ),
@@ -64,10 +95,22 @@ app.layout = ddk.App(
                             ddk.Graph(id="scatter-plot"),
                         ),
                         ddk.Row(
+                            dcc.RadioItems(
+                                id='test-button',
+                                options={
+                                    'move': 'Move',
+                                    'deselect': 'Copy and Deselect',
+                                    'none': 'Copy and Keep Selected'
+                                },
+                                value='move', inline=True, style={'margin': 10}
+                            ),
+                        ),
+                        ddk.Row(
                             dag.AgGrid(
                                 id="related-ag-grid",
                                 rowData=[],
                                 columnDefs=[
+                                    {"field": "", "checkboxSelection": True},
                                     {"field": "Date"},
                                     {"field": "PN"},
                                     {"field": "SN"},
@@ -76,10 +119,19 @@ app.layout = ddk.App(
                                     {"field": "", "sortable": False},
                                 ],
                                 columnSize="sizeToFit",
-                                dashGridOptions={"animateRows": False},
+                                dashGridOptions={
+                                    "rowSelection": "multiple",
+                                    "suppressRowClickSelection": True,
+                                    "animateRows": False,
+                                    "rowDragManaged": True,
+                                    "rowDragEntireRow": True,
+                                    "rowDragMultiRow": True,
+                                    "rowSelection": "multiple",
+                                    "suppressMoveWhenRowDragging": True,
+                                },
                                 defaultColDef={
                                     "filter": True,
-                                    "editable": True,
+                                    "editable": False,
                                     "cellDataType": False,
                                 },
                             ),
@@ -97,10 +149,17 @@ app.layout = ddk.App(
                                     {"field": "", "sortable": False},
                                 ],
                                 columnSize="sizeToFit",
-                                dashGridOptions={"animateRows": False},
+                                dashGridOptions={
+                                    "animateRows": False,
+                                    "rowDragManaged": True,
+                                    "rowDragEntireRow": True,
+                                    "rowDragMultiRow": True,
+                                    "rowSelection": "multiple",
+                                    "suppressMoveWhenRowDragging": True,
+                                },
                                 defaultColDef={
                                     "filter": True,
-                                    "editable": True,
+                                    "editable": False,
                                     "cellDataType": False,
                                 },
                             ),
@@ -113,9 +172,20 @@ app.layout = ddk.App(
 )
 
 
+#* Copied from https://dash.plotly.com/dash-ag-grid/row-dragging-external-dropzone
+clientside_callback(
+    ClientsideFunction("addDropZone", "dropZoneGrid2GridComplex"),
+    Output("non-related-ag-grid", "id"),
+    Input("test-button", "value"),
+    State("related-ag-grid", "id"),
+    State("non-related-ag-grid", "id")
+)
+
+
 @callback(
     Output("scatter-plot", "figure"),
     Output("related-ag-grid", "rowData"),
+    Output("related-ag-grid", "selectedRows"),
     Output("non-related-ag-grid", "rowData"),
     Input("tails-ag-grid", "cellDoubleClicked"),
     allow_duplicate=True,
@@ -157,11 +227,11 @@ def update_scatter_plot(tail_name: str):
         for event in non_relevant_events
     ]
 
-    return fig, related_events_data, non_related_events_data
+    return fig, related_events_data, related_events_data, non_related_events_data
 
 
 @callback(
-    Input("related-ag-grid", "rowData"),
+    Input("related-ag-grid", "selectedRows"),
     State("scatter-plot", "figure"),
     prevent_initial_call=True,
 )
@@ -170,6 +240,9 @@ def add_event_vertical_lines(row_data, figure):
     max_date = datetime.strptime("1000-01-01", "%Y-%m-%d")
 
     figure = go.Figure(figure)
+
+    # Remove all existing vlines on every callback run
+    figure["layout"]["shapes"] = []
 
     for event in row_data:
         date_obj = datetime.strptime(event["Date"], "%Y-%m-%d")
